@@ -15,13 +15,13 @@
 
 #include "pwrnum/big_integer/big_integer.h"
 
-namespace pwrnum {
+namespace cait {
 
-class BigFloat {
+class bigfloat_t {
 public:
-  BigFloat() : exponent_("0"), is_negative_(false) {}
+  bigfloat_t() : exponent_("0"), is_negative_(false) {}
 
-  BigFloat(const std::string& number) {
+  bigfloat_t(const std::string& number) {
     if (number.empty()) {
       throw std::invalid_argument("Invalid number format");
     }
@@ -46,40 +46,40 @@ public:
       }
 
       if (!int_part.empty()) {
-        mantissa_ = BigInteger(int_part);
+        mantissa_ = bigint_t(int_part);
       } else {
-        mantissa_ = BigInteger("0");
+        mantissa_ = bigint_t("0");
       }
       if (!frac_part.empty()) {
         exponent_ =
-            BigInteger(std::to_string(-static_cast<int>(frac_part.size())));
+            bigint_t(std::to_string(-static_cast<int>(frac_part.size())));
         mantissa_ =
             mantissa_
-                .Multiply(BigInteger("1" + std::string(frac_part.size(), '0')))
-                .Add(BigInteger(frac_part));
+                .multiply(bigint_t("1" + std::string(frac_part.size(), '0')))
+                .add(bigint_t(frac_part));
       } else {
-        exponent_ = BigInteger("0");
+        exponent_ = bigint_t("0");
       }
     } else {
-      mantissa_ = BigInteger(number.substr(start));
-      exponent_ = BigInteger("0");
+      mantissa_ = bigint_t(number.substr(start));
+      exponent_ = bigint_t("0");
     }
-    RemoveLeadingZeros();
+    remove_leading_zeros();
   }
 
-  BigFloat(const BigFloat& other)
+  bigfloat_t(const bigfloat_t& other)
       : mantissa_(other.mantissa_),
         exponent_(other.exponent_),
         is_negative_(other.is_negative_) {}
 
-  BigFloat(BigFloat&& other) noexcept
+  bigfloat_t(bigfloat_t&& other) noexcept
       : mantissa_(std::move(other.mantissa_)),
         exponent_(std::move(other.exponent_)),
         is_negative_(other.is_negative_) {
     other.is_negative_ = false;
   }
 
-  BigFloat& operator=(const BigFloat& other) {
+  bigfloat_t& operator=(const bigfloat_t& other) {
     if (this != &other) {
       mantissa_ = other.mantissa_;
       exponent_ = other.exponent_;
@@ -88,7 +88,7 @@ public:
     return *this;
   }
 
-  BigFloat& operator=(BigFloat&& other) noexcept {
+  bigfloat_t& operator=(bigfloat_t&& other) noexcept {
     if (this != &other) {
       mantissa_ = std::move(other.mantissa_);
       exponent_ = std::move(other.exponent_);
@@ -98,150 +98,150 @@ public:
     return *this;
   }
 
-  [[nodiscard]] BigFloat Add(const BigFloat& other) const {
-    BigFloat lhs = *this;
-    BigFloat rhs = other;
+  [[nodiscard]] bigfloat_t add(const bigfloat_t& other) const {
+    bigfloat_t lhs = *this;
+    bigfloat_t rhs = other;
 
-    Normalize(lhs, rhs);
+    normalize(lhs, rhs);
 
-    BigFloat result;
-    result.mantissa_ = lhs.mantissa_.Add(rhs.mantissa_);
+    bigfloat_t result;
+    result.mantissa_ = lhs.mantissa_.add(rhs.mantissa_);
     result.exponent_ = lhs.exponent_;
     result.is_negative_ = lhs.is_negative_;
-    result.RemoveLeadingZeros();
+    result.remove_leading_zeros();
     return result;
   }
 
-  [[nodiscard]] BigFloat Subtract(const BigFloat& other) const {
-    BigFloat lhs = *this;
-    BigFloat rhs = other;
+  [[nodiscard]] bigfloat_t subtract(const bigfloat_t& other) const {
+    bigfloat_t lhs = *this;
+    bigfloat_t rhs = other;
 
-    Normalize(lhs, rhs);
+    normalize(lhs, rhs);
 
-    BigFloat result;
-    result.mantissa_ = lhs.mantissa_.Subtract(rhs.mantissa_);
+    bigfloat_t result;
+    result.mantissa_ = lhs.mantissa_.subtract(rhs.mantissa_);
     result.exponent_ = lhs.exponent_;
     result.is_negative_ = lhs.is_negative_;
-    result.RemoveLeadingZeros();
+    result.remove_leading_zeros();
     return result;
   }
 
-  [[nodiscard]] BigFloat Multiply(const BigFloat& other) const {
-    BigFloat result;
-    result.mantissa_ = mantissa_.Multiply(other.mantissa_);
-    result.exponent_ = exponent_.Add(other.exponent_);
+  [[nodiscard]] bigfloat_t multiply(const bigfloat_t& other) const {
+    bigfloat_t result;
+    result.mantissa_ = mantissa_.multiply(other.mantissa_);
+    result.exponent_ = exponent_.add(other.exponent_);
     result.is_negative_ = is_negative_ != other.is_negative_;
-    result.RemoveLeadingZeros();
+    result.remove_leading_zeros();
     return result;
   }
 
-  [[nodiscard]] BigFloat Divide(const BigFloat& other) const {
-    if (other.Equal(BigFloat("0"))) {
+  [[nodiscard]] bigfloat_t divide(const bigfloat_t& other) const {
+    if (other.equal(bigfloat_t("0"))) {
       throw std::invalid_argument("Division by zero");
     }
 
-    BigFloat result;
-    result.mantissa_ = mantissa_.Divide(other.mantissa_);
-    result.exponent_ = exponent_.Subtract(other.exponent_);
+    bigfloat_t result;
+    result.mantissa_ = mantissa_.divide(other.mantissa_);
+    result.exponent_ = exponent_.subtract(other.exponent_);
     result.is_negative_ = is_negative_ != other.is_negative_;
-    result.RemoveLeadingZeros();
+    result.remove_leading_zeros();
     return result;
   }
 
-  [[nodiscard]] int Compare(const BigFloat& other) const {
-    BigFloat lhs = *this;
-    BigFloat rhs = other;
+  [[nodiscard]] int compare(const bigfloat_t& other) const {
+    bigfloat_t lhs = *this;
+    bigfloat_t rhs = other;
 
-    Normalize(lhs, rhs);
+    normalize(lhs, rhs);
 
-    return lhs.mantissa_.Compare(rhs.mantissa_);
+    return lhs.mantissa_.compare(rhs.mantissa_);
   }
 
-  [[nodiscard]] bool LessThan(const BigFloat& other) const {
-    return Compare(other) < 0;
+  [[nodiscard]] bool less_than(const bigfloat_t& other) const {
+    return compare(other) < 0;
   }
 
-  [[nodiscard]] bool GreaterThan(const BigFloat& other) const {
-    return Compare(other) > 0;
+  [[nodiscard]] bool greater_than(const bigfloat_t& other) const {
+    return compare(other) > 0;
   }
 
-  [[nodiscard]] bool Equal(const BigFloat& other) const {
-    return Compare(other) == 0;
+  [[nodiscard]] bool equal(const bigfloat_t& other) const {
+    return compare(other) == 0;
   }
 
-  [[nodiscard]] BigFloat Abs() const {
-    BigFloat result = *this;
+  [[nodiscard]] bigfloat_t abs() const {
+    bigfloat_t result = *this;
     result.is_negative_ = false;
     return result;
   }
 
-  [[nodiscard]] BigFloat Pow(int exponent) const {
+  [[nodiscard]] bigfloat_t pow(int exponent) const {
     if (exponent < 0) {
       throw std::invalid_argument("Negative exponent not supported");
     }
 
-    BigFloat result("1");
-    BigFloat base = *this;
+    bigfloat_t result("1");
+    bigfloat_t base = *this;
 
     while (exponent > 0) {
       if (exponent % 2 == 1) {
-        result = result.Multiply(base);
+        result = result.multiply(base);
       }
-      base = base.Multiply(base);
+      base = base.multiply(base);
       exponent /= 2;
     }
 
     return result;
   }
 
-  [[nodiscard]] BigFloat Sqr() const { return this->Multiply(*this); }
+  [[nodiscard]] bigfloat_t sqr() const { return this->multiply(*this); }
 
-  [[nodiscard]] BigFloat Sqrt() const {
+  [[nodiscard]] bigfloat_t sqrt() const {
     if (is_negative_) {
       throw std::invalid_argument("Square root of negative number");
     }
 
-    if (this->Equal(BigFloat("0")) || this->Equal(BigFloat("1"))) {
+    if (this->equal(bigfloat_t("0")) || this->equal(bigfloat_t("1"))) {
       return *this;
     }
 
-    BigFloat low("1"), high = *this;
-    while (low.LessThan(high) || low.Equal(high)) {
-      auto mid = low.Add(high).Divide(BigFloat("2"));
-      auto squared = mid.Sqr();
-      if (squared.Equal(*this)) {
+    bigfloat_t low("1"), high = *this;
+    while (low.less_than(high) || low.equal(high)) {
+      auto mid = low.add(high).divide(bigfloat_t("2"));
+      auto squared = mid.sqr();
+      if (squared.equal(*this)) {
         return mid;
       }
-      if (squared.LessThan(*this)) {
-        low = mid.Add(BigFloat("1"));
+      if (squared.less_than(*this)) {
+        low = mid.add(bigfloat_t("1"));
       } else {
-        high = mid.Subtract(BigFloat("1"));
+        high = mid.subtract(bigfloat_t("1"));
       }
     }
 
     return high;
   }
 
-  void Swap(BigFloat& other) {
+  void swap(bigfloat_t& other) {
     std::swap(mantissa_, other.mantissa_);
     std::swap(exponent_, other.exponent_);
     std::swap(is_negative_, other.is_negative_);
   }
 
-  [[nodiscard]] bool IsPositive() const {
-    return !is_negative_ && !Equal(BigFloat("0"));
+  [[nodiscard]] bool is_positive() const {
+    return !is_negative_ && !equal(bigfloat_t("0"));
   }
 
-  [[nodiscard]] bool IsNegative() const { return is_negative_; }
+  [[nodiscard]] bool is_negative() const { return is_negative_; }
 
-  [[nodiscard]] std::string ToString() const {
+  [[nodiscard]] std::string to_string() const {
     std::ostringstream oss;
-    if (is_negative_ && !mantissa_.Equal(BigInteger("0"))) {
+    if (is_negative_ && !mantissa_.equal(bigint_t("0"))) {
       oss << "-";
     }
 
-    const std::string mantissa_str = mantissa_.ToString();
-    const int exp_val = std::stoi(exponent_.ToString());
+    const std::string mantissa_str = mantissa_.to_string();
+    const int exp_val = std::stoi(exponent_.to_string());
     if (exp_val < 0) {
       const size_t point_pos = mantissa_str.size() + exp_val;
       if (point_pos <= 0) {
@@ -268,29 +268,29 @@ public:
   }
 
 private:
-  void RemoveLeadingZeros() {
-    mantissa_.RemoveLeadingZeros();
-    if (mantissa_.Equal(BigInteger("0"))) {
-      exponent_ = BigInteger("0");
+  void remove_leading_zeros() {
+    mantissa_.remove_leading_zeros();
+    if (mantissa_.equal(bigint_t("0"))) {
+      exponent_ = bigint_t("0");
       is_negative_ = false;
     }
   }
 
-  void Normalize(BigFloat& lhs, BigFloat& rhs) const {
-    if (lhs.exponent_.GreaterThan(rhs.exponent_)) {
-      rhs.mantissa_ = rhs.mantissa_.ShiftLeft(
-          std::stoi(lhs.exponent_.Subtract(rhs.exponent_).ToString()));
+  void normalize(bigfloat_t& lhs, bigfloat_t& rhs) const {
+    if (lhs.exponent_.greater_than(rhs.exponent_)) {
+      rhs.mantissa_ = rhs.mantissa_.shift_left(
+          std::stoi(lhs.exponent_.subtract(rhs.exponent_).to_string()));
       rhs.exponent_ = lhs.exponent_;
-    } else if (lhs.exponent_.LessThan(rhs.exponent_)) {
-      lhs.mantissa_ = lhs.mantissa_.ShiftLeft(
-          std::stoi(rhs.exponent_.Subtract(lhs.exponent_).ToString()));
+    } else if (lhs.exponent_.less_than(rhs.exponent_)) {
+      lhs.mantissa_ = lhs.mantissa_.shift_left(
+          std::stoi(rhs.exponent_.subtract(lhs.exponent_).to_string()));
       lhs.exponent_ = rhs.exponent_;
     }
   }
 
 private:
-  BigInteger mantissa_;
-  BigInteger exponent_;
+  bigint_t mantissa_;
+  bigint_t exponent_;
   bool is_negative_;
 };
 

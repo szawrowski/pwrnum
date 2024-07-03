@@ -12,13 +12,13 @@
 #include <string>
 #include <vector>
 
-namespace pwrnum {
+namespace cait {
 
-class BigInteger {
+class bigint_t {
 public:
-  BigInteger() = default;
+  bigint_t() = default;
 
-  BigInteger(const std::string& number) {
+  bigint_t(const std::string& number) {
     if (number.empty()) {
       throw std::invalid_argument("Invalid number format");
     }
@@ -39,18 +39,18 @@ public:
       digits_.push_back(number[i] - '0');
     }
     std::reverse(digits_.begin(), digits_.end());
-    RemoveLeadingZeros();
+    remove_leading_zeros();
   }
 
-  BigInteger(const BigInteger& other)
+  bigint_t(const bigint_t& other)
       : digits_(other.digits_), is_negative_(other.is_negative_) {}
 
-  BigInteger(BigInteger&& other) noexcept
+  bigint_t(bigint_t&& other) noexcept
       : digits_(std::move(other.digits_)), is_negative_(other.is_negative_) {
     other.is_negative_ = false;
   }
 
-  BigInteger& operator=(const BigInteger& other) {
+  bigint_t& operator=(const bigint_t& other) {
     if (this != &other) {
       digits_ = other.digits_;
       is_negative_ = other.is_negative_;
@@ -58,7 +58,7 @@ public:
     return *this;
   }
 
-  BigInteger& operator=(BigInteger&& other) noexcept {
+  bigint_t& operator=(bigint_t&& other) noexcept {
     if (this != &other) {
       digits_ = std::move(other.digits_);
       is_negative_ = other.is_negative_;
@@ -67,9 +67,9 @@ public:
     return *this;
   }
 
-  [[nodiscard]] BigInteger Add(const BigInteger& other) const {
+  [[nodiscard]] bigint_t add(const bigint_t& other) const {
     if (is_negative_ == other.is_negative_) {
-      BigInteger result;
+      bigint_t result;
       result.is_negative_ = is_negative_;
       result.digits_.resize(std::max(digits_.size(), other.digits_.size()) + 1,
                             0);
@@ -86,36 +86,36 @@ public:
         result.digits_[i] = sum % 10;
         carry = sum / 10;
       }
-      result.RemoveLeadingZeros();
+      result.remove_leading_zeros();
       return result;
     }
-    BigInteger abs_this = *this;
+    bigint_t abs_this = *this;
     abs_this.is_negative_ = false;
-    BigInteger abs_other = other;
+    bigint_t abs_other = other;
     abs_other.is_negative_ = false;
 
-    if (abs_this.GreaterThan(abs_other)) {
-      return abs_this.Subtract(abs_other);
+    if (abs_this.greater_than(abs_other)) {
+      return abs_this.subtract(abs_other);
     }
-    BigInteger result = abs_other.Subtract(abs_this);
+    bigint_t result = abs_other.subtract(abs_this);
     result.is_negative_ = other.is_negative_;
     return result;
   }
 
-  [[nodiscard]] BigInteger Subtract(const BigInteger& other) const {
+  [[nodiscard]] bigint_t subtract(const bigint_t& other) const {
     if (this->is_negative_ != other.is_negative_) {
-      BigInteger result = Add(other);
+      bigint_t result = add(other);
       result.is_negative_ = this->is_negative_;
       return result;
     }
-    if (Equal(other)) {
-      return BigInteger{"0"};
+    if (equal(other)) {
+      return bigint_t{"0"};
     }
-    const bool result_is_negative = LessThan(other);
-    const BigInteger& larger = result_is_negative ? other : *this;
-    const BigInteger& smaller = result_is_negative ? *this : other;
+    const bool result_is_negative = less_than(other);
+    const bigint_t& larger = result_is_negative ? other : *this;
+    const bigint_t& smaller = result_is_negative ? *this : other;
 
-    BigInteger result;
+    bigint_t result;
     result.is_negative_ = result_is_negative;
     result.digits_.resize(larger.digits_.size(), 0);
 
@@ -133,12 +133,12 @@ public:
       }
       result.digits_[i] = diff;
     }
-    result.RemoveLeadingZeros();
+    result.remove_leading_zeros();
     return result;
   }
 
-  [[nodiscard]] BigInteger Multiply(const BigInteger& other) const {
-    BigInteger result;
+  [[nodiscard]] bigint_t multiply(const bigint_t& other) const {
+    bigint_t result;
     result.digits_.resize(digits_.size() + other.digits_.size(), 0);
 
     for (size_t i = 0; i < digits_.size(); ++i) {
@@ -153,30 +153,30 @@ public:
       }
     }
     result.is_negative_ = is_negative_ != other.is_negative_;
-    result.RemoveLeadingZeros();
+    result.remove_leading_zeros();
     return result;
   }
 
-  [[nodiscard]] BigInteger Divide(const BigInteger& other) const {
-    if (other.Equal(BigInteger("0"))) {
+  [[nodiscard]] bigint_t divide(const bigint_t& other) const {
+    if (other.equal(bigint_t("0"))) {
       throw std::invalid_argument("Division by zero");
     }
-    BigInteger dividend = *this;
+    bigint_t dividend = *this;
     dividend.is_negative_ = false;
-    BigInteger divisor = other;
+    bigint_t divisor = other;
     divisor.is_negative_ = false;
-    BigInteger quotient("0");
-    BigInteger current("0");
+    bigint_t quotient("0");
+    bigint_t current("0");
 
     for (int i = digits_.size() - 1; i >= 0; --i) {
       current.digits_.insert(current.digits_.begin(), digits_[i]);
-      current.RemoveLeadingZeros();
+      current.remove_leading_zeros();
 
       int x = 0, l = 0, r = 10;
       while (l <= r) {
         const int m = (l + r) / 2;
-        BigInteger t = divisor.Multiply(BigInteger(std::to_string(m)));
-        if (t.LessThan(current) || t.Equal(current)) {
+        bigint_t t = divisor.multiply(bigint_t(std::to_string(m)));
+        if (t.less_than(current) || t.equal(current)) {
           x = m;
           l = m + 1;
         } else {
@@ -184,84 +184,83 @@ public:
         }
       }
       quotient.digits_.insert(quotient.digits_.begin(), x);
-      current =
-          current.Subtract(divisor.Multiply(BigInteger(std::to_string(x))));
+      current = current.subtract(divisor.multiply(bigint_t(std::to_string(x))));
     }
 
     quotient.is_negative_ = is_negative_ != other.is_negative_;
-    quotient.RemoveLeadingZeros();
+    quotient.remove_leading_zeros();
     return quotient;
   }
 
-  [[nodiscard]] BigInteger Modulo(const BigInteger& other) const {
-    BigInteger result = this->Subtract(this->Divide(other).Multiply(other));
+  [[nodiscard]] bigint_t modulo(const bigint_t& other) const {
+    bigint_t result = this->subtract(this->divide(other).multiply(other));
     if (result.is_negative_ != this->is_negative_) {
       result.is_negative_ = this->is_negative_;
     }
     return result;
   }
 
-  [[nodiscard]] BigInteger Abs() const {
-    BigInteger result = *this;
+  [[nodiscard]] bigint_t abs() const {
+    bigint_t result = *this;
     result.is_negative_ = false;
     return result;
   }
 
-  [[nodiscard]] BigInteger Pow(int exponent) const {
+  [[nodiscard]] bigint_t pow(int exponent) const {
     if (exponent < 0) {
       throw std::invalid_argument("Negative exponent not supported");
     }
-    BigInteger result("1");
-    BigInteger base = *this;
+    bigint_t result("1");
+    bigint_t base = *this;
 
     while (exponent > 0) {
       if (exponent % 2 == 1) {
-        result = result.Multiply(base);
+        result = result.multiply(base);
       }
-      base = base.Multiply(base);
+      base = base.multiply(base);
       exponent /= 2;
     }
     return result;
   }
 
-  [[nodiscard]] BigInteger Sqr() const { return this->Multiply(*this); }
+  [[nodiscard]] bigint_t sqr() const { return this->multiply(*this); }
 
-  [[nodiscard]] BigInteger Sqrt() const {
+  [[nodiscard]] bigint_t sqrt() const {
     if (is_negative_) {
       throw std::invalid_argument("Square root of negative number");
     }
-    if (this->Equal(BigInteger("0")) || this->Equal(BigInteger("1"))) {
+    if (this->equal(bigint_t("0")) || this->equal(bigint_t("1"))) {
       return *this;
     }
 
-    BigInteger low("1"), high = *this, squared;
-    while (low.LessThan(high) || low.Equal(high)) {
-      BigInteger mid = low.Add(high).Divide(BigInteger("2"));
-      squared = mid.Sqr();
-      if (squared.Equal(*this)) {
+    bigint_t low("1"), high = *this, squared;
+    while (low.less_than(high) || low.equal(high)) {
+      bigint_t mid = low.add(high).divide(bigint_t("2"));
+      squared = mid.sqr();
+      if (squared.equal(*this)) {
         return mid;
       }
-      if (squared.LessThan(*this)) {
-        low = mid.Add(BigInteger("1"));
+      if (squared.less_than(*this)) {
+        low = mid.add(bigint_t("1"));
       } else {
-        high = mid.Subtract(BigInteger("1"));
+        high = mid.subtract(bigint_t("1"));
       }
     }
     return high;
   }
 
-  void Swap(BigInteger& other) {
+  void swap(bigint_t& other) {
     std::swap(digits_, other.digits_);
     std::swap(is_negative_, other.is_negative_);
   }
 
-  [[nodiscard]] bool IsPositive() const {
-    return !is_negative_ && !Equal(BigInteger("0"));
+  [[nodiscard]] bool is_positive() const {
+    return !is_negative_ && !equal(bigint_t("0"));
   }
 
-  [[nodiscard]] bool IsNegative() const { return is_negative_; }
+  [[nodiscard]] bool is_negative() const { return is_negative_; }
 
-  [[nodiscard]] int Compare(const BigInteger& other) const {
+  [[nodiscard]] int compare(const bigint_t& other) const {
     if (is_negative_ != other.is_negative_) {
       return is_negative_ ? -1 : 1;
     }
@@ -285,19 +284,19 @@ public:
     return 0;
   }
 
-  [[nodiscard]] bool LessThan(const BigInteger& other) const {
-    return Compare(other) < 0;
+  [[nodiscard]] bool less_than(const bigint_t& other) const {
+    return compare(other) < 0;
   }
 
-  [[nodiscard]] bool GreaterThan(const BigInteger& other) const {
-    return Compare(other) > 0;
+  [[nodiscard]] bool greater_than(const bigint_t& other) const {
+    return compare(other) > 0;
   }
 
-  [[nodiscard]] bool Equal(const BigInteger& other) const {
-    return Compare(other) == 0;
+  [[nodiscard]] bool equal(const bigint_t& other) const {
+    return compare(other) == 0;
   }
 
-  [[nodiscard]] std::string ToString() const {
+  [[nodiscard]] std::string to_string() const {
     if (digits_.empty()) {
       return "0";
     }
@@ -311,37 +310,37 @@ public:
     return result;
   }
 
-  void Invert() {
+  void invert() {
     if (!digits_.empty()) {
       is_negative_ = !is_negative_;
     }
   }
 
-  [[nodiscard]] BigInteger ShiftLeft(int positions) const {
+  [[nodiscard]] bigint_t shift_left(int positions) const {
     if (positions < 0) {
-      return ShiftRight(-positions);
+      return shift_right(-positions);
     }
-    BigInteger result = *this;
+    bigint_t result = *this;
     result.digits_.insert(result.digits_.begin(), positions, 0);
-    result.RemoveLeadingZeros();
+    result.remove_leading_zeros();
     return result;
   }
 
-  [[nodiscard]] BigInteger ShiftRight(int positions) const {
+  [[nodiscard]] bigint_t shift_right(int positions) const {
     if (positions < 0) {
-      return ShiftLeft(-positions);
+      return shift_left(-positions);
     }
-    BigInteger result = *this;
+    bigint_t result = *this;
     if (static_cast<size_t>(positions) >= result.digits_.size()) {
-      return BigInteger{"0"};
+      return bigint_t{"0"};
     }
     result.digits_.erase(result.digits_.begin(),
                          result.digits_.begin() + positions);
-    result.RemoveLeadingZeros();
+    result.remove_leading_zeros();
     return result;
   }
 
-  void RemoveLeadingZeros() {
+  void remove_leading_zeros() {
     while (!digits_.empty() && digits_.back() == 0) {
       digits_.pop_back();
     }
